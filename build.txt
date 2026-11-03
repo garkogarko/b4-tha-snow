@@ -1,0 +1,3 @@
+# The game build that GitHub Pages serves. To ship a new version, change these two lines and push.
+url=https://d2ol7oe51mr4n9.cloudfront.net/user_35aOi012g9NRCon8VYQBNc1Wtkr/f48b48c5-15d6-4a2d-ade9-ab029f3a0c03.html
+sha256=b03c168495d9a8e35ce065c4c29cb5d3600b23e6a880b7a66a6dd08dabd78538

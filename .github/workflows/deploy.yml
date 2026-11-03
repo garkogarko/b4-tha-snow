@@ -1,0 +1,58 @@
+# Publishes the game to GitHub Pages.
+# The game is one self-contained HTML file (about 11 MB). build.txt names where that build lives and its SHA-256.
+# On each push the workflow fetches that build if index.html doesn't match yet, checks the hash,
+# commits it as index.html (so the repo always holds the playable file), then deploys the site.
+name: Deploy game
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Bring index.html up to date with build.txt
+        run: |
+          url=$(grep '^url=' build.txt | cut -d= -f2-)
+          want=$(grep '^sha256=' build.txt | cut -d= -f2-)
+          have=$( [ -f index.html ] && sha256sum index.html | cut -d' ' -f1 || echo none )
+          if [ "$have" != "$want" ]; then
+            curl -fsSL --retry 3 "$url" -o index.html.new
+            got=$(sha256sum index.html.new | cut -d' ' -f1)
+            if [ "$got" != "$want" ]; then echo "Downloaded build hash $got does not match $want"; exit 1; fi
+            mv index.html.new index.html
+            git config user.name "github-actions[bot]"
+            git config user.email "41898729+github-actions[bot]@users.noreply.github.com"
+            git add index.html
+            git commit -m "Update game build to ${want:0:12}"
+            git push
+          fi
+
+      - name: Assemble site
+        run: |
+          mkdir -p _site
+          cp index.html _site/index.html
+          touch _site/.nojekyll
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4
